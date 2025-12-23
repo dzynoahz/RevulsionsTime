@@ -1,0 +1,151 @@
+let day = 1;
+let month = 1;
+let year = 741;
+let paused = false;
+let adminBuffer = "";
+let timer = null;
+
+const ADMIN_PASSWORD = "Noahnoah1@lore";
+
+const monthNames = [
+  "January", "February", "March", "April",
+  "May", "June", "July", "August",
+  "September", "October", "November", "December"
+];
+
+const daysInMonths = [
+  31, 28, 31, 30,
+  31, 30, 31, 31,
+  30, 31, 30, 31
+];
+
+// 1 month = 3 real-life months → each in-game day = 3 real-life days
+// 3 days * 24 * 60 * 60 = 259200 seconds
+const secondsPerDay = 259200; // real-life seconds per in-game day
+
+// Load saved date
+const saved = JSON.parse(localStorage.getItem("storyDate"));
+if (saved) {
+  day = saved.day;
+  month = saved.month;
+  year = saved.year;
+}
+
+function getSuffix(d) {
+  if (d >= 11 && d <= 13) return "th";
+  switch (d % 10) {
+    case 1: return "st";
+    case 2: return "nd";
+    case 3: return "rd";
+    default: return "th";
+  }
+}
+
+function updateDisplay() {
+  document.getElementById("dateDisplay").textContent =
+    `${monthNames[month - 1]} ${day}${getSuffix(day)}, ${year}`;
+}
+
+function advanceDay() {
+  if (paused) return;
+
+  day++;
+  if (day > daysInMonths[month - 1]) {
+    day = 1;
+    month++;
+  }
+
+  if (month > 12) {
+    month = 1;
+    year++;
+  }
+
+  saveDate();
+  updateDisplay();
+}
+
+function startTimer() {
+  timer = setInterval(advanceDay, secondsPerDay * 1000);
+}
+
+function saveDate() {
+  localStorage.setItem("storyDate", JSON.stringify({ day, month, year }));
+}
+
+startTimer();
+updateDisplay();
+
+// ========== Admin System (unchanged) ==========
+
+// Populate month dropdown
+const monthSelect = document.getElementById("adminMonth");
+monthNames.forEach((m, i) => {
+  const option = document.createElement("option");
+  option.value = i + 1;
+  option.textContent = m;
+  monthSelect.appendChild(option);
+});
+
+// Detect typing "ADMIN"
+document.addEventListener("keydown", (e) => {
+  adminBuffer += e.key.toUpperCase();
+  if (adminBuffer.length > 5) adminBuffer = adminBuffer.slice(-5);
+
+  if (adminBuffer === "ADMIN") {
+    adminBuffer = "";
+    const pass = prompt("Enter admin password:");
+    if (pass === ADMIN_PASSWORD) openAdminPanel();
+    else alert("Incorrect password.");
+  }
+});
+
+function openAdminPanel() {
+  document.getElementById("adminPanel").style.display = "block";
+  document.getElementById("adminDay").value = day;
+  document.getElementById("adminMonth").value = month;
+  document.getElementById("adminYear").value = year;
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById("pausedStatus").textContent = paused ? "Paused" : "Running";
+}
+
+function applyDate() {
+  const newDay = parseInt(document.getElementById("adminDay").value);
+  const newMonth = parseInt(document.getElementById("adminMonth").value);
+  const newYear = parseInt(document.getElementById("adminYear").value);
+
+  if (
+    newMonth >= 1 && newMonth <= 12 &&
+    newDay >= 1 && newDay <= daysInMonths[newMonth - 1] &&
+    newYear >= 1
+  ) {
+    day = newDay;
+    month = newMonth;
+    year = newYear;
+    saveDate();
+    updateDisplay();
+  } else {
+    alert("Invalid date.");
+  }
+}
+
+function skipDays() {
+  const skip = parseInt(document.getElementById("skipDays").value);
+  if (!isNaN(skip) && skip > 0) {
+    for (let i = 0; i < skip; i++) advanceDay();
+  }
+}
+
+function resetDate() {
+  day = 1;
+  month = 1;
+  year = 741;
+  saveDate();
+  updateDisplay();
+}
+
+function hideAdminPanel() {
+  document.getElementById("adminPanel").style.display = "none";
+}
